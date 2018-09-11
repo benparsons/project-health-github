@@ -1,4 +1,9 @@
 const octokit = require('@octokit/rest')();
+var config = require('./config.json');
+octokit.authenticate({
+    type: 'oauth',
+    token: config.token
+});
 var moment = require('moment');
 const sqlite3 = require('sqlite3').verbose();
 let db = new sqlite3.Database('db.db', sqlite3.OPEN_READWRITE);
