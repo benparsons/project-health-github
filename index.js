@@ -8,21 +8,86 @@ var repos = [
     {owner: 'tulir', repo: 'gomuks'}
 ];
 
+var issues = true;
+var commits = true;
+
 // var repoLastUpdated = db.get(`SELECT updated FROM issues WHERE owner = '${owner}' AND repo = '${repo}' ORDER BY updated desc`);
 // if (repoLastUpdated) { repoLastUpdated = repoLastUpdated.updated; }
 
 init();
 
 async function init() {
-    repos.forEach(async repo => {
-        var issues = await getIssues(repo.owner, repo.repo);
-        issues.forEach((issue) => {
-            tryUpdate(repo.owner, repo.repo, issue);
+    /* ISSUES */
+    if (issues) {
+        repos.forEach(async repo => {
+            var issues = await getIssues(repo.owner, repo.repo);
+            issues.forEach((issue) => {
+                tryUpdateIssue(repo.owner, repo.repo, issue);
+            });
         });
+    }
+
+    if (commits) {
+        repos.forEach(async repo => {
+            var response = await octokit.repos.getCommits({
+                owner: repo.owner,
+                repo: repo.repo,
+                per_page: 100
+            });
+            response.data.forEach(commit => {
+                tryUpdateCommit(repo.owner, repo.repo, commit);
+            });
+        });
+    }
+}
+
+function tryUpdateCommit(owner, repo, commit) {
+    var updateSql =
+    `UPDATE commits
+    SET
+    'author.login' = '${commit.author.login}',
+    'author.date' = '${commit.commit.author.date}',
+    'committer.login' = '${commit.committer.login}',
+    'committer.date' = '${commit.commit.committer.date}'
+    WHERE
+    owner = '${owner}' AND
+    repo = '${repo}' AND
+    sha = '${commit.sha}'
+    `;
+    
+    db.run(updateSql, function(error) {
+        if (error) {
+            console.log(error);
+            process.exit(1);
+        }
+
+        console.log(this);
+        if (this.changes === 0) {
+            insertCommit(owner, repo, commit);
+        }
     });
 }
 
-function tryUpdate(owner, repo, issue) {
+function insertCommit(owner, repo, commit) {
+    var insertSql = 
+    `INSERT INTO commits
+    (owner, repo, sha)
+    VALUES
+    ('${owner}', '${repo}', '${commit.sha}')
+    `;
+    db.run(insertSql, function(error) {
+        if (error) {
+            console.log(error);
+            process.exit(1);
+        }
+        console.log(this);
+        if (this.changes === 1) {
+            tryUpdateCommit(owner, repo, commit);
+        }
+    });
+}
+
+function tryUpdateIssue(owner, repo, issue) {
     var updateSql = 
     `UPDATE issues
     SET 
@@ -64,7 +129,7 @@ function insertIssue(owner, repo, issue) {
         }
         console.log(this);
         if (this.changes === 1) {
-            tryUpdate(owner, repo, issue);
+            tryUpdateIssue(owner, repo, issue);
         }
     });
 }
@@ -74,7 +139,8 @@ async function getIssues(owner, repo) {
         owner: owner,
         repo: repo,
         state: 'all',
-        sort: 'updated'
+        sort: 'updated',
+        per_page: 100
     });
     return response.data;
 }

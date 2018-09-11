@@ -3,6 +3,7 @@
         "for",
         "get",
         "octokit",
-        "repo"
+        "repo",
+        "repos"
     ]
 }
