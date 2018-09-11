@@ -5,7 +5,15 @@ let db = new sqlite3.Database('db.db', sqlite3.OPEN_READWRITE);
 var repos = [
     {owner: 'matrix-org', repo: 'synapse'},
     {owner: 'mujx', repo: 'nheko'},
-    {owner: 'tulir', repo: 'gomuks'}
+    {owner: 'tulir', repo: 'gomuks'},
+    {owner: 'ruma', repo: 'ruma'},
+    {owner: 'vector-im', repo: 'riot-web'},
+    {owner: 'QMatrixClient', repo: 'Quaternion'},
+    {owner: 'neilalexander', repo: 'seaglass'},
+    {owner: 'uMatriks', repo: 'uMatriks'},
+    {owner: 'matrix-org', repo: 'matrix-appservice-irc'},
+    {owner: 'matrix-org', repo: 'matrix-python-sdk'}
+
 ];
 
 var issues = true;
