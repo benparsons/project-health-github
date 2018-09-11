@@ -19,10 +19,9 @@ var repos = [
     {owner: 'uMatriks', repo: 'uMatriks'},
     {owner: 'matrix-org', repo: 'matrix-appservice-irc'},
     {owner: 'matrix-org', repo: 'matrix-python-sdk'}
-
 ];
 
-var issues = true;
+var issues = false;
 var commits = true;
 var details = false;
 
@@ -50,8 +49,8 @@ async function init() {
                 repo: repo.repo,
                 per_page: 100
             });
-            response.data.forEach(commit => {
-                tryUpdateCommit(repo.owner, repo.repo, commit);
+            response.data.forEach(async commit => {
+                await tryUpdateCommit(repo.owner, repo.repo, commit);
             });
         });
     }
@@ -91,7 +90,7 @@ async function init() {
     }
 }
 
-function tryUpdateCommit(owner, repo, commit) {
+async function tryUpdateCommit(owner, repo, commit) {
     var updateSql =
     `UPDATE commits
     SET
@@ -115,6 +114,8 @@ function tryUpdateCommit(owner, repo, commit) {
         if (this.changes === 0) {
             insertCommit(owner, repo, commit);
         }
+
+        return this.changes;
     });
 }
 
