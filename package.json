@@ -10,6 +10,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@octokit/rest": "^15.11.1",
+    "moment": "^2.22.2",
     "sqlite3": "^4.0.2"
   }
 }
