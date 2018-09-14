@@ -5,8 +5,9 @@ var moment = require('moment');
 var config = require('./config.json');
 
 var queries = [];
+var minus30Days = moment().subtract(30, 'days').format("YYYY-MM-DD");
 fs.readdirSync('sql/').forEach(file => {
-    queries[file.replace(/\.sql/, '')] = fs.readFileSync('sql/' + file, 'utf-8');
+    queries[file.replace(/\.sql/, '')] = fs.readFileSync('sql/' + file, 'utf-8').replace('%DS%', minus30Days);
 });
 
 var todayDs = moment().format("YYYY-MM-DD");
@@ -62,6 +63,30 @@ function process() {
                 updateDistinctCommitAuthors(row);
             });
         });
+        db.all(queries['daily-repo-details'], (err, rows) => {
+            if (err) { console.log(err); process.exit(1); }
+            rows.forEach(row => {
+                updateRepoDetails(row);
+            });
+        });
+    });
+}
+
+function updateRepoDetails(row) {
+    //stargazers_count, watchers_count, forks_count
+    var updateSql = `
+    UPDATE results_issues
+    SET
+    stargazers_count = ${row.stargazers_count},
+    watchers_count = ${row.watchers_count},
+    forks_count = ${row.forks_count}
+    WHERE
+    ds = '${row.ds}'
+    AND owner = '${row.owner}'
+    AND repo = '${row.repo}'
+    `;
+    db.run(updateSql, function (err) {
+        if (err) { console.log(err); process.exit(1); }
     });
 }
 
