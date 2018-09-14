@@ -10,9 +10,9 @@ let db = new sqlite3.Database('db.db', sqlite3.OPEN_READWRITE);
 
 var repos = config.repos;
 
-var issues = false;
+var issues = true;
 var commits = true;
-var details = false;
+var details = true;
 
 // var repoLastUpdated = db.get(`SELECT updated FROM issues WHERE owner = '${owner}' AND repo = '${repo}' ORDER BY updated desc`);
 // if (repoLastUpdated) { repoLastUpdated = repoLastUpdated.updated; }
