@@ -5,16 +5,19 @@ var moment = require('moment');
 var config = require('./config.json');
 
 var queries = [];
-var minus30Days = moment().subtract(30, 'days').format("YYYY-MM-DD");
+var givenDate = moment();
+if (process.argv[2]) {
+    givenDate = moment(process.argv[2]);
+}
+var todayDs = givenDate.format("YYYY-MM-DD");
+var minus30Days = givenDate.subtract(30, 'days').format("YYYY-MM-DD");
 fs.readdirSync('sql/').forEach(file => {
-    queries[file.replace(/\.sql/, '')] = fs.readFileSync('sql/' + file, 'utf-8').replace('%DS%', minus30Days);
+    queries[file.replace(/\.sql/, '')] = fs.readFileSync('sql/' + file, 'utf-8').replace(/%DS%/g, minus30Days);
 });
 
-var todayDs = moment().format("YYYY-MM-DD");
+processData();
 
-process();
-
-function process() {
+function processData() {
 
     db.serialize(function() {
         config.repos.forEach(repo => {
