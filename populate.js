@@ -30,14 +30,7 @@ async function init() {
     /* COMMITS */
     if (commits) {
         repos.forEach(async repo => {
-            var response = await octokit.repos.getCommits({
-                owner: repo.owner,
-                repo: repo.repo,
-                per_page: 100
-            });
-            response.data.forEach(async commit => {
-                await tryUpdateCommit(repo.owner, repo.repo, commit);
-            });
+            getCommits(repo.owner, repo.repo, 1);
         });
     }
 
@@ -77,31 +70,35 @@ async function init() {
 }
 
 async function tryUpdateCommit(owner, repo, commit) {
-    var updateSql =
-    `UPDATE commits
-    SET
-    'author.login' = '${commit.author.login}',
-    'author.date' = '${commit.commit.author.date}',
-    'committer.login' = '${commit.committer.login}',
-    'committer.date' = '${commit.commit.committer.date}'
-    WHERE
-    owner = '${owner}' AND
-    repo = '${repo}' AND
-    sha = '${commit.sha}'
-    `;
-    
-    db.run(updateSql, function(error) {
-        if (error) {
-            console.log(error);
-            process.exit(1);
-        }
+    if (! commit.author) {
+        commit.author = {login: commit.commit.author.email };
+    }
+    return new Promise(resolve => {
+        var updateSql =
+        `UPDATE commits
+        SET
+        'author.login' = '${commit.author.login}',
+        'author.date' = '${commit.commit.author.date}',
+        'committer.login' = '${commit.committer.login}',
+        'committer.date' = '${commit.commit.committer.date}'
+        WHERE
+        owner = '${owner}' AND
+        repo = '${repo}' AND
+        sha = '${commit.sha}'
+        `;
+        
+        db.run(updateSql, function(error) {
+            if (error) {
+                console.log(error);
+                process.exit(1);
+            }
 
-        console.log(this);
-        if (this.changes === 0) {
-            insertCommit(owner, repo, commit);
-        }
+            if (this.changes === 0) {
+                insertCommit(owner, repo, commit);
+            }
 
-        return this.changes;
+            resolve(this.changes);
+        });
     });
 }
 
@@ -166,7 +163,6 @@ function insertIssue(owner, repo, issue) {
             console.log(error);
             process.exit(1);
         }
-        console.log(this);
         if (this.changes === 1) {
             tryUpdateIssue(owner, repo, issue);
         }
@@ -189,6 +185,24 @@ async function getIssues(owner, repo, page) {
         if ((changes === 0 || page < 5) && ! nextPaged && page < 20) {
             nextPaged = true;
             getIssues(owner, repo, page + 1);
+        }
+    });
+}
+
+async function getCommits(owner, repo, page) {
+    console.log(`getCommits(${owner}, ${repo}, ${page})`);
+    var response = await octokit.repos.getCommits({
+        owner: owner,
+        repo: repo,
+        per_page: 100,
+        page: page
+    });
+    var nextPaged = false;
+    await response.data.forEach(async commit => {
+        var changes = await tryUpdateCommit(owner, repo, commit);
+        if ((changes === 0 || page < 5) && ! nextPaged && page < 20) {
+            nextPaged = true;
+            getCommits(owner, repo, page + 1);
         }
     });
 }
