@@ -10,7 +10,7 @@ mysqlConn.connect(function(err) {
 });
   
 
-var oneWeekAgo = moment().subtract(7, 'days').format("YYYY-MM-DD");
+var oneWeekAgo = moment().subtract(50, 'days').format("YYYY-MM-DD");
 
 db.all(`SELECT * FROM results_issues WHERE ds > ${oneWeekAgo}`, function(err, rows) {
     if (err) { console.log(err); process.exit(1); }
