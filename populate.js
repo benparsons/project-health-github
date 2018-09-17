@@ -23,10 +23,7 @@ async function init() {
     /* ISSUES */
     if (issues) {
         repos.forEach(async repo => {
-            var issues = await getIssues(repo.owner, repo.repo);
-            issues.forEach((issue) => {
-                tryUpdateIssue(repo.owner, repo.repo, issue);
-            });
+            getIssues(repo.owner, repo.repo, 1);
         });
     }
 
@@ -128,30 +125,32 @@ function insertCommit(owner, repo, commit) {
 }
 
 function tryUpdateIssue(owner, repo, issue) {
-    var updateSql = 
-    `UPDATE issues
-    SET 
-    is_pull = ${issue.pull_request ? 1 : 0},
-    opened = '${issue.created_at}',
-    updated = '${issue.updated_at}',
-    closed = '${issue.closed_at}',
-    'user.login' = '${issue.user.login}',
-    'user.assoc' = '${issue.author_association}'
-    WHERE
-    owner = '${owner}' AND
-    repo = '${repo}' AND
-    number = ${issue.number}
-    `;
-    db.run(updateSql, function(error) {
-        if (error) {
-            console.log(error);
-            process.exit(1);
-        }
+    return new Promise(resolve => {
+        var updateSql = 
+        `UPDATE issues
+        SET 
+        is_pull = ${issue.pull_request ? 1 : 0},
+        opened = '${issue.created_at}',
+        updated = '${issue.updated_at}',
+        closed = '${issue.closed_at}',
+        'user.login' = '${issue.user.login}',
+        'user.assoc' = '${issue.author_association}'
+        WHERE
+        owner = '${owner}' AND
+        repo = '${repo}' AND
+        number = ${issue.number}
+        `;
+        db.run(updateSql, function(error) {
+            if (error) {
+                console.log(error);
+                process.exit(1);
+            }
 
-        console.log(this);
-        if (this.changes === 0) {
-            insertIssue(owner, repo, issue);
-        }
+            if (this.changes === 0) {
+                insertIssue(owner, repo, issue);
+            }
+            resolve(this.changes);
+        });
     });
 }
 
@@ -174,13 +173,22 @@ function insertIssue(owner, repo, issue) {
     });
 }
 
-async function getIssues(owner, repo) {
+async function getIssues(owner, repo, page) {
+    console.log(`getIssues(${owner}, ${repo}, ${page})`);
     var response = await octokit.issues.getForRepo({
         owner: owner,
         repo: repo,
         state: 'all',
         sort: 'updated',
-        per_page: 100
+        per_page: 100,
+        page: page
     });
-    return response.data;
+    var nextPaged = false;
+    await response.data.forEach(async (issue) => {
+        var changes = await tryUpdateIssue(owner, repo, issue);
+        if ((changes === 0 || page < 5) && ! nextPaged && page < 20) {
+            nextPaged = true;
+            getIssues(owner, repo, page + 1);
+        }
+    });
 }
