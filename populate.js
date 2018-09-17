@@ -55,13 +55,13 @@ async function init() {
             `;
             db.run(insertSql, function(error) {
                 if (error) {
+                    console.log(this);
                     console.log(error);
                     process.exit(1);
                 }
-                console.log(this);
                 if (this.changes !== 1) {
                     console.log("insert failed:");
-                    console.log(insertSql);
+                    console.log(this);
                     process.exit(1);
                 }
             });
@@ -72,6 +72,9 @@ async function init() {
 async function tryUpdateCommit(owner, repo, commit) {
     if (! commit.author) {
         commit.author = {login: commit.commit.author.email };
+    }
+    if (! commit.committer) {
+        commit.committer = {login: commit.commit.author.email };
     }
     return new Promise(resolve => {
         var updateSql =
@@ -89,6 +92,7 @@ async function tryUpdateCommit(owner, repo, commit) {
         
         db.run(updateSql, function(error) {
             if (error) {
+                console.log(this);
                 console.log(error);
                 process.exit(1);
             }
@@ -111,10 +115,10 @@ function insertCommit(owner, repo, commit) {
     `;
     db.run(insertSql, function(error) {
         if (error) {
+            console.log(this);
             console.log(error);
             process.exit(1);
         }
-        console.log(this);
         if (this.changes === 1) {
             tryUpdateCommit(owner, repo, commit);
         }
