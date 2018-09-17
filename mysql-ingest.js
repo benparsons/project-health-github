@@ -18,7 +18,7 @@ db.all(`SELECT * FROM results_issues WHERE ds > ${oneWeekAgo}`, function(err, ro
     var rowsHandled = 0;
     rows.forEach(row => {
         var sql = `
-            INSERT IGNORE INTO advocacy_github_health (
+            REPLACE INTO advocacy_github_health (
                 ds,
                 owner,
                 repo,
