@@ -15,7 +15,8 @@ var oneWeekAgo = moment().subtract(50, 'days').format("YYYY-MM-DD");
 db.all(`SELECT * FROM results_issues WHERE ds > ${oneWeekAgo}`, function(err, rows) {
     if (err) { console.log(err); process.exit(1); }
     console.log(rows.length);
-    rows.forEach(rows => {
+    var rowsHandled = 0;
+    rows.forEach(row => {
         var sql = `
             INSERT IGNORE INTO advocacy_github_health (
                 ds,
@@ -30,21 +31,25 @@ db.all(`SELECT * FROM results_issues WHERE ds > ${oneWeekAgo}`, function(err, ro
                 stars,
                 watch,forks
             ) VALUES (
-                '${rows.ds}',
-                '${rows.owner}',
-                '${rows.repo}',
-                ${rows.issues_opened},
-                ${rows.issues_closed},
-                ${rows.issues_avg_duration},
-                ${rows.issues_distinct_users},
-                ${rows.commit_days},
-                ${rows.distinct_commit_authors},
-                ${rows.stargazers_count},
-                ${rows.watchers_count},
-                ${rows.forks_count}
+                '${row.ds}',
+                '${row.owner}',
+                '${row.repo}',
+                ${row.issues_opened},
+                ${row.issues_closed},
+                ${row.issues_avg_duration},
+                ${row.issues_distinct_users},
+                ${row.commit_days},
+                ${row.distinct_commit_authors},
+                ${row.stargazers_count},
+                ${row.watchers_count},
+                ${row.forks_count}
             )
         `;
-        //console.log(sql); process.exit(0);
-        mysqlConn.query(sql);
+        mysqlConn.query(sql, function() {
+            rowsHandled++;
+            if (rowsHandled === rows.length) {
+                process.exit(0);
+            }
+        });
     });
 });
